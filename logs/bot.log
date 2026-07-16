@@ -151,3 +151,11 @@
 12:55:50 | INFO | Logged in as BobNews#4829
 12:55:50 | INFO | Synced 5 global commands
 12:55:50 | INFO | ========================================
+15:05:22 | WARNING | PyNaCl is not installed, voice will NOT be supported
+15:05:22 | WARNING | davey is not installed, voice will NOT be supported
+15:05:22 | INFO | logging in using static token
+15:05:23 | INFO | Shard ID None has connected to Gateway (Session ID: 9af9c4b8015278dcbb252808072faced).
+15:05:25 | INFO | ========================================
+15:05:25 | INFO | Logged in as BobNews#4829
+15:05:25 | INFO | Synced 5 global commands
+15:05:25 | INFO | ========================================
