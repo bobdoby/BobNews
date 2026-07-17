@@ -1,13 +1,18 @@
 ﻿import os
 import discord
+from loot_database import load_loot_database
 from discord import app_commands
 import logging
 import json
+import difflib
 from dotenv import load_dotenv
 from database import get_database, add_game, remove_game
 
 
 load_dotenv()
+
+
+
 
 logging.basicConfig(
     level=logging.INFO,
@@ -56,6 +61,327 @@ class GameNewsClient(discord.Client):
 
 
 client = GameNewsClient()
+
+
+try:
+    loot_database = load_loot_database()
+    logger.info(
+        f"Loaded {len(loot_database)} loot items"
+    )
+
+except Exception as e:
+    logger.error(
+        f"Failed to load loot database: {e}"
+    )
+
+    loot_database = {}
+
+
+
+#========================
+# Location Formatter
+#========================
+
+def format_locations(data):
+
+    text = ""
+
+    for location in data["locations"]:
+
+        text += f"**{location['town']}**"
+
+        if location.get("amount"):
+            text += f" — {location['amount']} found"
+
+        text += "\n"
+
+        if location["details"]:
+
+            for detail in location["details"]:
+                text += f"└ {detail}\n"
+
+        else:
+
+            text += "└ No additional details\n"
+
+
+    return text
+
+#========================
+#Loot Buttons
+#=======================
+
+class LootButtons(discord.ui.View):
+
+    def __init__(self, item, data, colour):
+        super().__init__(timeout=60)
+
+        self.item = item
+        self.data = data
+        self.colour = colour
+
+
+        # Remove buttons that are not needed
+
+        if not data["locations"]:
+            self.remove_item(self.locations)
+
+        if not data["crafting"]:
+            self.remove_item(self.crafting)
+
+
+    @discord.ui.button(
+        label="📍 Locations",
+        style=discord.ButtonStyle.green
+    )
+    async def locations(
+        self,
+        interaction: discord.Interaction,
+        button: discord.ui.Button
+    ):
+
+        text = format_locations(self.data)
+
+        embed = discord.Embed(
+            title=f"📍 Locations - {self.item}",
+            description=text,
+            colour=self.colour
+        )
+
+
+        await interaction.response.send_message(
+            embed=embed,
+            ephemeral=True
+        )
+
+
+
+    @discord.ui.button(
+        label="⚙️ Crafting",
+        style=discord.ButtonStyle.blurple
+    )
+    async def crafting(
+        self,
+        interaction: discord.Interaction,
+        button: discord.ui.Button
+    ):
+
+        text = ""
+
+        for recipe in self.data["crafting"]:
+
+            text += (
+                f"**📍 {recipe['town']}**\n"
+            )
+
+            text += "Input:\n"
+
+            for ingredient in recipe["inputs"]:
+
+                text += (
+                    f"└ {ingredient['amount']}x "
+                    f"{ingredient['item']}\n"
+                )
+
+
+            text += "Output:\n"
+
+            text += (
+                f"└ {recipe['output_amount']}x "
+                f"{self.item}\n\n"
+            )
+
+
+        embed = discord.Embed(
+            title=f"⚙️ Crafting - {self.item}",
+            description=text,
+            colour=self.colour
+        )
+
+
+        await interaction.response.send_message(
+            embed=embed,
+            ephemeral=True
+        )
+
+ #========================
+ #SandSearch Command
+ #========================
+
+@client.tree.command(
+    name="sandsearch",
+    description="Search Sand loot locations"
+)
+async def sandsearch(
+    interaction: discord.Interaction,
+    item: str
+):
+
+    search = item.upper()
+
+    result = None
+
+
+    # Exact / partial match first
+    for name, data in loot_database.items():
+
+        if search in name.upper():
+
+            result = data
+            item = name
+            break
+
+
+
+    # Fuzzy match if nothing found
+    if result is None:
+
+        matches = difflib.get_close_matches(
+            search,
+            loot_database.keys(),
+            n=1,
+            cutoff=0.6
+        )
+
+
+        if matches:
+
+            item = matches[0]
+            result = loot_database[item]
+
+
+    if result is None:
+
+        await interaction.response.send_message(
+            f"❌ Could not find **{item}**"
+        )
+
+        return
+
+
+    rarity_colors = {
+        "COMMON": discord.Colour.greyple(),
+        "UNCOMMON": discord.Colour.green(),
+        "RARE": discord.Colour.blue(),
+        "NOTEWORTHY": discord.Colour.purple(),
+        "REMARKABLE": discord.Colour.orange(),
+        "EXPERIMENTAL": discord.Colour.red()
+    }
+
+
+    rarity = result.get("rarity")
+
+
+    if isinstance(rarity, str):
+
+        colour = rarity_colors.get(
+            rarity.upper(),
+            discord.Colour.blue()
+        )
+
+    else:
+
+        colour = discord.Colour.blue()
+
+
+    embed = discord.Embed(
+        title=f"🔎 {item}",
+        colour=colour
+    )
+
+
+    price = result.get("price")
+
+    if price and str(price).lower() != "nan":
+
+        embed.add_field(
+            name="💰 Price",
+            value=str(price),
+            inline=True
+        )
+
+
+    if result["rarity"]:
+
+        embed.add_field(
+            name="⭐ Rarity",
+            value=result["rarity"],
+            inline=True
+        )
+
+    has_price = (
+        result.get("price") is not None
+        and str(result.get("price")).lower() != "nan"
+    )
+
+    has_rarity = (
+        isinstance(result.get("rarity"), str)
+        and result.get("rarity").strip() != ""
+    )
+
+    has_crafting = bool(result.get("crafting"))
+
+    has_extra_info = has_price or has_rarity or has_crafting
+
+
+    if not has_extra_info and result.get("locations"):
+
+        text = format_locations(result)
+
+        embed.add_field(
+            name="📍 Found Locations",
+            value=text,
+            inline=False
+        )
+
+
+    
+
+
+    if has_extra_info:
+
+        await interaction.response.send_message(
+            embed=embed,
+            view=LootButtons(item, result, colour)
+        )
+
+    else:
+
+        await interaction.response.send_message(
+            embed=embed
+        )
+
+
+
+#========================
+#SandSearch Autocomplete
+#========================
+
+
+@sandsearch.autocomplete("item")
+async def sandsearch_autocomplete(
+    interaction: discord.Interaction,
+    current: str
+):
+
+    choices = []
+
+    current = current.upper()
+
+
+    for item in loot_database.keys():
+
+        if current in item:
+
+            choices.append(
+                app_commands.Choice(
+                    name=item,
+                    value=item
+                )
+            )
+
+
+    return choices[:25]
 
 
 
@@ -153,8 +479,54 @@ async def on_message(message):
         f"Forwarded {game} update"
     )
 
+#========================
+# SandRefresh Command
+#========================
+
+@client.tree.command(
+    name="sandrefresh",
+    description="Reload the Sand loot database"
+)
+@app_commands.checks.has_permissions(manage_guild=True)
+async def sandrefresh(
+    interaction: discord.Interaction
+):
+
+    global loot_database
+
+    await interaction.response.defer(
+        ephemeral=True
+    )
+
+    try:
+
+        loot_database = load_loot_database()
+
+        logger.info(
+            f"Reloaded loot database: {len(loot_database)} items"
+        )
+
+        await interaction.followup.send(
+            f"✅ Sand database refreshed!\n"
+            f"📦 Loaded **{len(loot_database)} items**",
+            ephemeral=True
+        )
 
 
+    except Exception as e:
+
+        logger.error(
+            f"Failed to refresh loot database: {e}"
+        )
+
+        await interaction.followup.send(
+            f"❌ Failed to refresh database:\n`{e}`",
+            ephemeral=True
+        )
+
+#========================
+#Send Command
+#========================
 
 
 @client.tree.command(
@@ -178,8 +550,9 @@ async def send(
         f"Channel: {interaction.channel.mention}"
     )
 
-
-
+#========================
+#Recieve Command
+#========================
 
 
 @client.tree.command(
@@ -231,7 +604,9 @@ async def receive_autocomplete(
     return choices[:25]
 
 
-
+#========================
+#Links Command
+#========================
 
 
 @client.tree.command(
@@ -463,9 +838,6 @@ async def on_app_command_error(
     else:
 
         raise error
-
-
-
 
 
 client.run(TOKEN)
