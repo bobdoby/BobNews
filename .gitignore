@@ -7,6 +7,8 @@ __pycache__/
 *.so
 
 # Distribution / packaging
+database.json
+logs/bot.log
 .Python
 build/
 develop-eggs/
