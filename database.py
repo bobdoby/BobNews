@@ -27,39 +27,74 @@ def get_database():
 
 
 
-def add_game(game_name, source_id=None, destination_id=None):
+def add_game(
+    user_id,
+    username,
+    game_name,
+    source_id=None,
+    destination_id=None
+):
 
     database = load_database()
 
-
-    if game_name not in database:
-        database[game_name] = {}
+    user_id = str(user_id)
 
 
+    # Create user if they don't exist
+    if user_id not in database:
+
+        database[user_id] = {
+            "username": username,
+            "games": {}
+        }
+
+
+    # Update username if it changed
+    database[user_id]["username"] = username
+
+
+    # Create game if user doesn't have it
+    if game_name not in database[user_id]["games"]:
+
+        database[user_id]["games"][game_name] = {
+            "source": None,
+            "destination": None
+        }
+
+
+    # Update source
     if source_id:
-        database[game_name]["source"] = source_id
+
+        database[user_id]["games"][game_name]["source"] = source_id
 
 
+    # Update destination
     if destination_id:
-        database[game_name]["destination"] = destination_id
+
+        database[user_id]["games"][game_name]["destination"] = destination_id
 
 
     save_database(database)
 
 
 
-def remove_game(game_name):
+def remove_game(user_id, game_name):
 
     database = load_database()
 
+    user_id = str(user_id)
 
-    if game_name in database:
 
-        del database[game_name]
+    if user_id in database:
 
-        save_database(database)
+        if game_name in database[user_id]["games"]:
 
-        return True
+            del database[user_id]["games"][game_name]
+
+
+            save_database(database)
+
+            return True
 
 
     return False

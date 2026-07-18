@@ -552,6 +552,8 @@ async def send(
 ):
 
     add_game(
+        user_id=interaction.user.id,
+        username=interaction.user.display_name,
         game_name=game,
         source_id=interaction.channel.id
     )
@@ -578,6 +580,8 @@ async def receive(
 ):
 
     add_game(
+        user_id=interaction.user.id,
+        username=interaction.user.display_name,
         game_name=game,
         destination_id=interaction.channel.id
     )
@@ -598,11 +602,20 @@ async def receive_autocomplete(
 
     choices = []
 
-    for game, channels in database.items():
+    user_id = str(interaction.user.id)
 
-        # Only show games without a destination
+    user_data = database.get(user_id)
+
+
+    if not user_data:
+        return choices
+
+
+    for game, channels in user_data["games"].items():
+
         if channels.get("destination"):
             continue
+
 
         if current.lower() in game.lower():
 
@@ -612,6 +625,7 @@ async def receive_autocomplete(
                     value=game
                 )
             )
+
 
     return choices[:25]
 
@@ -683,7 +697,9 @@ async def links(
         embed=embed
     )
 
-
+#========================
+#Remove Command
+#========================
 
 
 
@@ -697,7 +713,10 @@ async def remove(
     game: str
 ):
 
-    removed = remove_game(game)
+    removed = remove_game(
+        interaction.user.id,
+        game
+    )
 
 
 
@@ -713,6 +732,12 @@ async def remove(
             f"❌ Could not find **{game}**."
         )
 
+       
+       
+#========================
+#Remove Autocorrect
+#========================
+
 @remove.autocomplete("game")
 async def remove_autocomplete(
     interaction: discord.Interaction,
@@ -723,7 +748,16 @@ async def remove_autocomplete(
 
     choices = []
 
-    for game in database.keys():
+    user_id = str(interaction.user.id)
+
+    user_data = database.get(user_id)
+
+
+    if not user_data:
+        return choices
+
+
+    for game in user_data["games"].keys():
 
         if current.lower() in game.lower():
 
@@ -734,8 +768,13 @@ async def remove_autocomplete(
                 )
             )
 
+
     return choices[:25]
 
+
+#========================
+#Status Command
+#========================
 
 @client.tree.command(
     name="status",
