@@ -400,6 +400,18 @@ async def on_ready():
 @client.event
 async def on_message(message):
 
+    print("========== MESSAGE RECEIVED ==========")
+    print(f"Author: {message.author}")
+    print(f"Channel: {message.channel}")
+    print(f"Type: {message.type}")
+    print(f"Flags: {message.flags}")
+    print(f"Content: {message.content}")
+    print(f"Embeds: {len(message.embeds)}")
+    print(f"Attachments: {len(message.attachments)}")
+    print(f"Channel ID: {message.channel.id}")
+    print(f"Message ID: {message.id}")
+    print("======================================")
+
     if message.author.bot:
         return
 
