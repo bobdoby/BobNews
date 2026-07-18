@@ -435,18 +435,19 @@ async def on_message(message):
     destination_id = None
 
 
-    for name, channels in database.items():
+    for user_id, user_data in database.items():
 
-        if message.channel.id == channels.get("source"):
+        for name, channels in user_data.get("games", {}).items():
 
-            game = name
-            destination_id = channels.get("destination")
+            if message.channel.id == channels.get("source"):
+
+                game = name
+                destination_id = channels.get("destination")
+                break
+
+
+        if game:
             break
-
-
-
-    if game is None:
-        return
 
 
 
@@ -611,11 +612,7 @@ async def receive_autocomplete(
         return choices
 
 
-    for game, channels in user_data["games"].items():
-
-        if channels.get("destination"):
-            continue
-
+    for game in user_data.get("games", {}):
 
         if current.lower() in game.lower():
 
@@ -786,8 +783,12 @@ async def status(
 
     database = get_database()
 
+    user_id = str(interaction.user.id)
 
-    if not database:
+    user_data = database.get(user_id)
+
+
+    if not user_data:
 
         await interaction.response.send_message(
             "No game feeds are currently configured."
@@ -799,29 +800,23 @@ async def status(
 
     embed = discord.Embed(
         title="📡 Game News Relay Status",
-        description="Current relay configuration",
+        description=f"Configured by {user_data.get('username')}",
         colour=discord.Colour.green()
     )
 
 
-    for game, channels in database.items():
+    for game, channels in user_data["games"].items():
+
+        value = ""
+
 
         source_id = channels.get("source")
         destination_id = channels.get("destination")
 
 
-        value = ""
-
-
-        # Check source
         if source_id:
 
-            source = client.get_channel(source_id)
-
-            if source:
-                value += f"📥 Source: {source.mention}\n"
-            else:
-                value += f"📥 Source: ⚠️ Channel missing\n"
+            value += f"📥 Source: <#{source_id}>\n"
 
         else:
 
@@ -829,15 +824,9 @@ async def status(
 
 
 
-        # Check destination
         if destination_id:
 
-            destination = client.get_channel(destination_id)
-
-            if destination:
-                value += f"📤 Destination: {destination.mention}\n"
-            else:
-                value += f"📤 Destination: ⚠️ Channel missing\n"
+            value += f"📤 Destination: <#{destination_id}>\n"
 
         else:
 
@@ -845,20 +834,18 @@ async def status(
 
 
 
-        # Status indicator
-
         if source_id and destination_id:
 
-            status_icon = "✅"
+            icon = "✅"
 
         else:
 
-            status_icon = "⚠️"
+            icon = "⚠️"
 
 
 
         embed.add_field(
-            name=f"{status_icon} {game}",
+            name=f"{icon} {game}",
             value=value,
             inline=False
         )
