@@ -4,11 +4,32 @@ password: ubuntu
 /home/ubuntu/BobNews
 
 to start the bot:
-source venv/bin/activate
-python3 bot.py
+./start_bot.sh
+or
+sudo systemctl start bobnews
+
+view bot status:
+sudo systemctl status bobnews
 
 to turn off bot:
 screen
 screen -ls
 screen -r [session name]
 ctrl + C
+
+or 
+
+sudo systemctl stop bobnews
+
+pull updates
+./update_bot.sh
+
+git pull origin main
+then
+sudo systemctl restart bobnews
+
+viewing bot logs:
+sudo journalctl -u bobnews -f
+
+
+/home/ubuntu/BobNews/venv/bin/python3

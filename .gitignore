@@ -7,6 +7,8 @@ __pycache__/
 *.so
 
 # Distribution / packaging
+logs/
+venv/
 database.json
 logs/bot.log
 .Python
