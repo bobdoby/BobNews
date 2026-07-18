@@ -7,6 +7,8 @@ __pycache__/
 *.so
 
 # Distribution / packaging
+Sand-Loot-Locations.xlsx
+forwarded_messages.json
 logs/
 venv/
 database.json
