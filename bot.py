@@ -210,7 +210,16 @@ async def sandsearch(interaction: discord.Interaction, item: str):
         )
 
     view = LootButtons(matched_item, result, colour)
-    await interaction.response.send_message(embed=embed, view=view if view.children else None)
+
+    if view.children:
+        await interaction.response.send_message(
+            embed=embed,
+            view=view
+        )
+    else:
+        await interaction.response.send_message(
+            embed=embed
+        )
 
 
 @sandsearch.autocomplete("item")
