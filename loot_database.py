@@ -113,7 +113,8 @@ def load_loot_database():
         database[item].update({
 
             "price": row["Price"],
-            "rarity": clean(row["Rarity"])
+            "rarity": clean(row["Rarity"]),
+            "category": clean(row["Category"])
 
         })
 
@@ -156,6 +157,8 @@ def load_loot_database():
                 "price": None,
 
                 "rarity": None,
+
+                "category": None,
 
                 "locations": [],
 

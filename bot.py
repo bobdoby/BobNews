@@ -201,7 +201,22 @@ async def sandsearch(interaction: discord.Interaction, item: str):
     if rarity and str(rarity).lower() != "nan":
         embed.add_field(name="⭐ Rarity", value=str(rarity), inline=True)
 
-    has_extra_info = bool(price) or bool(rarity) or bool(result.get("crafting"))
+    category = result.get("category")
+
+    if category and str(category).lower() != "nan":
+        embed.add_field(
+            name="📦 Category",
+            value=str(category),
+            inline=True
+        )
+
+    has_extra_info = (
+        bool(price)
+        or bool(rarity)
+        or bool(category)
+        or bool(result.get("crafting"))
+    )
+
     if not has_extra_info and result.get("locations"):
         embed.add_field(
             name="📍 Found Locations",
