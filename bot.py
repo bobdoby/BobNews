@@ -194,6 +194,8 @@ async def sandsearch(interaction: discord.Interaction, item: str):
 
     embed = discord.Embed(title=f"🔎 {matched_item}", colour=colour)
 
+    print(result)
+
     price = result.get("price")
     if price is not None and str(price).lower() != "nan":
         embed.add_field(name="💰 Price", value=format_amount(price), inline=True)
